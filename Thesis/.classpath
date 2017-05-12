@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="data_collector_ver1/|data_collector_ver2/|data_collector_ver3/|data_collector_ver4/InitialThread.java|data_crawler_test1/|data_sample_json/|test/|oldVersion/" kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="import_jar/google-api-services-youtube-v3-rev174-1.22.0.jar"/>
+	<classpathentry kind="lib" path="import_jar/gson-2.6.2.jar"/>
+	<classpathentry kind="lib" path="import_jar/json-20160212.jar"/>
+	<classpathentry kind="lib" path="import_jar/mysql-connector-java-5.1.39-bin.jar"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>
