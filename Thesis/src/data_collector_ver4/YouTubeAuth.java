@@ -13,7 +13,10 @@ import youtube.auth.Auth;
 
 /**
  * This class is for maintaining the authorization of YouTube instances. 
- * @author tian
+ * The template is provided by YouTube Data API documentation sample.
+ * I modified it somewhat so that it fits our requirement. 
+ * 
+ *  @author Tian
  *
  */
 public class YouTubeAuth {
@@ -35,6 +38,7 @@ public class YouTubeAuth {
 		}
 
 		youtube = new YouTube.Builder(Auth.HTTP_TRANSPORT, Auth.JSON_FACTORY, new HttpRequestInitializer() {
+			@Override
 			public void initialize(HttpRequest request) throws IOException {
 			}
 		}).setApplicationName("youtube-cmdline").build();

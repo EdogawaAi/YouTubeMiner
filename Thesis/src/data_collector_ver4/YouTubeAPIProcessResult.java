@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import org.json.JSONObject;
 
 /**
- * A structure that stores the result of API process.
+ * A simple structure that stores the result of API process. This makes it easy
+ * to manage all the results in the main class.
  * 
  * @author tian
  *
@@ -16,7 +17,7 @@ public class YouTubeAPIProcessResult {
 	private ArrayList<JSONObject> videoStatisticTableList = new ArrayList<JSONObject>();
 	private ArrayList<JSONObject> videoCategoryTableList = new ArrayList<JSONObject>();
 	@SuppressWarnings("unchecked")
-	private ArrayList<JSONObject>[] videoCommentTableList = (ArrayList<JSONObject>[]) new ArrayList[2];
+	private ArrayList<JSONObject>[] videoCommentTableList = new ArrayList[2];
 	private ArrayList<JSONObject> channelTableList = new ArrayList<JSONObject>();
 	private ArrayList<JSONObject> channelStatisticTableList = new ArrayList<JSONObject>();
 
@@ -25,7 +26,7 @@ public class YouTubeAPIProcessResult {
 		videoTableList = new ArrayList<JSONObject>();
 		videoStatisticTableList = new ArrayList<JSONObject>();
 		videoCategoryTableList = new ArrayList<JSONObject>();
-		videoCommentTableList = (ArrayList<JSONObject>[]) new ArrayList[2];
+		videoCommentTableList = new ArrayList[2];
 		channelTableList = new ArrayList<JSONObject>();
 		channelStatisticTableList = new ArrayList<JSONObject>();
 	}

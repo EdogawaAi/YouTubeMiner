@@ -4,6 +4,15 @@ import java.util.LinkedHashSet;
 
 import com.google.api.services.youtube.YouTube;
 
+/**
+ * This is a class that combines the API process and MySQL Access. The original
+ * idea for creating this class is to build up as multithread. Now even though
+ * the plan has changed, we still keep this class for potential requirement.
+ * Also, this class doesn't generating any problem. It still works fine for now.
+ * 
+ * @author Tian
+ *
+ */
 public class YouTubeAPIProcessThread extends Thread {
 
 	private YouTube youtube;

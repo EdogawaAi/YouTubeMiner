@@ -1,9 +1,5 @@
 package data_collector_ver4;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Scanner;
 
@@ -22,6 +18,10 @@ public class Main {
 	 * as "crawled".
 	 * <q>5. Re-do from step2.
 	 * 
+	 * This class mainly calls: MySQLAccess to perform database related
+	 * functions, VideoIdGenerator to perform video ID collection, and
+	 * YouTubeAPIProcess to perform metadata collection.
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */
@@ -33,23 +33,37 @@ public class Main {
 		String apiKey = yAuth.getApiKey();
 		MySQLAccess dbAccess = new MySQLAccess();
 
-		// Whether or not importing new IDs to the DB.
+		// The configuration argument should be either 0 or 1.
+		// If set the argument to 0, we will do the metadata collection part.
 		if (mode.equals("0")) {
 			System.out.println("Mode: 0");
-			// skip generation of new video IDs
-			// Loop of main process block:
+
 			int count = 1000;
+			// For now we loop 1000 times. It's not a big number but still may
+			// cost nearly one week.
 			while (count-- > 0) {
+
 				System.out.println("Process remain: " + count + " times.");
+
 				// Each block read 20 videos:
 				LinkedHashSet<String> videoIdSet = dbAccess.readVideoIdList(20);
 				System.out.println("--VideoId read.");
+
 				YouTubeAPIProcessThread apiProcessThread = new YouTubeAPIProcessThread(youtube, apiKey, videoIdSet);
-				apiProcessThread.run();
+				apiProcessThread.run(); // At the beginning, the plan was a
+										// multithread design. However, it
+										// seemed that a distribution framework
+										// is more suitable for easily expanding
+										// (though it's not implemented yet).
+										// However, some old designs are kept
+										// since there's no harm...
 				apiProcessThread.join();
 			}
 
-		} else if (mode.equals("1")) {
+		}
+		// If set the argument to 1, we will process the video ID collection
+		// part.
+		else if (mode.equals("1")) {
 			System.out.println("Mode: 1");
 			// upload a list of video IDs to the database.
 			// input the size of the video ID.
@@ -67,6 +81,7 @@ public class Main {
 					"----------------------------------------------------------------------------------------------");
 			String[] inputString;
 			// Read values from input.
+			// Recommended input: 50, 1, 25.
 			do {
 				System.out.print(
 						"Please input the seed size of videos, total page number, and maximum result per page (separated by comma): ");
@@ -75,10 +90,10 @@ public class Main {
 			seedSize = Integer.valueOf(inputString[0].trim());
 			pageNum = Integer.valueOf(inputString[1].trim());
 			resultPerPage = Integer.valueOf(inputString[2].trim());
-			VideoIdCreator vIdCreator = new VideoIdCreator(youtube, apiKey, "date", seedSize, pageNum,
-					resultPerPage, makeFilePath(input));
+
+			VideoIdCreator vIdCreator = new VideoIdCreator(youtube, apiKey, "date", seedSize, pageNum, resultPerPage);
 			// Also input the expanding (i.e., get access to the related videos)
-			// times.
+			// times. If it's set to -1, then we'll run an infinite loop.
 			System.out.println(System.in.available());
 			System.out.println("Please input the expand time of the seed videos: ");
 			int expandTime = input.nextInt();
@@ -87,60 +102,13 @@ public class Main {
 			input.close();
 			System.out.println("In total " + videoIdSet.size() + " IDs are created.");
 			System.out.println("Insertion finished.");
-		} else {
+		} else { // Invalid input, requires re-set the argument.
 			System.out.println(
 					"Invalid argument. " + "\nValid argument options: \n 0 - Skip the generation of new video IDs"
 							+ "\n 1 - Start generating new video IDs and upload them to the DB");
 			System.exit(0);
 		}
 
-	}
-
-	private static String makeFilePath(Scanner input) throws IOException {
-		String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-		String pathname = "videoId" + File.separator + dateStr + "_videoId.txt";
-		try {
-			File file = new File(pathname);
-			if (!file.exists()) {
-				System.out.println("filepath: " + pathname);
-				file.getParentFile().mkdirs();
-				file.createNewFile();
-				if (file.exists()) {
-					System.out.println("->file created.");
-				}
-			} else {
-				System.out.println("File already exist. Rename(1) or replace(2)?");
-				String mode = new String();
-				do {
-					mode = input.nextLine();
-				} while (!(mode.equals("1") || mode.equals("2")));
-				if (mode.equals("1")) {
-					String time = new SimpleDateFormat("HHmmss").format(new Date());
-					pathname = pathname.split("\\.")[0] + "_" + time + ".txt";
-					System.out.println("filepath: " + pathname);
-					file.getParentFile().mkdirs();
-					file.createNewFile();
-					if (file.exists()) {
-						System.out.println("->file created.");
-					}
-				} else if (mode.equals("2")) {
-					System.out.println("File is deleted: " + file.delete());
-					System.out.println("filepath: " + pathname);
-					file.getParentFile().mkdirs();
-					file.createNewFile();
-					if (file.exists()) {
-						System.out.println("->file created.");
-					}
-				} else {
-					System.out.println("Should never reach this point.");
-				}
-			}
-
-		} catch (IOException e) {
-			throw e;
-		}
-
-		return pathname;
 	}
 
 }

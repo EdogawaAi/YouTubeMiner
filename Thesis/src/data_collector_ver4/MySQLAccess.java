@@ -24,11 +24,32 @@ import org.json.JSONObject;
 
 import com.google.api.services.youtube.YouTube.Search;
 
+/**
+ * This class handles nearly all MySQL database connection works in the program.
+ * 
+ * For every table in the database, we have a method that processes the
+ * insertion. These methods load JSONObjects that received as the responses of
+ * the API. Then they extract the JSONObjects and convert them into flat
+ * key-value pairs. Then, we use prepareStatement to set the values of queries
+ * and build up batches to insert into the database.
+ * 
+ * And, a separate method, videoIDListCreator, is implemented to insert a big
+ * set of video IDs into the database.
+ * 
+ * Also, since metadata collection process requires the IDs that have been
+ * stored in our database, a method is created to read a list of IDs from it.
+ * 
+ * @author Tian
+ *
+ */
 public class MySQLAccess {
 	protected Connection connect = null;
 	private Statement statement = null;
 	protected ResultSet resultSet = null;
 
+	// These attributes hold the properties that used for establish the database
+	// connection. All the properties can be set in:
+	// /resources/MySQL.properties
 	private String host;
 	private String port;
 	private String dbname;
@@ -39,7 +60,7 @@ public class MySQLAccess {
 	private Properties properties = new Properties();
 
 	public MySQLAccess() {
-		// In the constructor, load the properties of the server setting.
+		// Load the properties of the server setting from property file.
 		try {
 			InputStream in = Search.class.getResourceAsStream("/" + PROPERTIES_FILENAME);
 			properties.load(in);
@@ -56,7 +77,7 @@ public class MySQLAccess {
 	}
 
 	protected void establishConnection() throws SQLException {
-		// This will load the MySQL driver, each DB has its own driver
+		// This will load the MySQL driver.
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 		} catch (ClassNotFoundException e) {
@@ -70,16 +91,21 @@ public class MySQLAccess {
 	}
 
 	// channel table insertion.
+	// note: all the table insertion methods are similar to each other.
 	private void writeChannelToDataBase(ArrayList<JSONObject> channelTableList) throws Exception {
 
 		// The table list contains many entities of channels. They need to be
-		// inserted one by one.
+		// inserted one after another.
 		String query = "INSERT INTO Channel (ChannelId, ChannelPublishedAt, ChannelTitle, ChannelDescription) "
 				+ "VALUE (?, ?, ?, ?) ON DUPLICATE KEY UPDATE ChannelId=ChannelId";
+
+		// PreparedStatement is a flexible as well as stable way to handle
+		// queries.
 		PreparedStatement preparedStatement = connect.prepareStatement(query);
 
 		for (JSONObject channelTable : channelTableList) {
-			// Scratch the information from stored JSON object.
+			// Scratch the information from stored JSON object, so that it can
+			// be easily inserted into the database.
 			String channelId = channelTable.getString("ChannelId");
 			Timestamp channelPublishedAt = stringToTimestamp(channelTable.getString("ChannelPublishedAt"));
 			String channelTitle = channelTable.getString("ChannelTitle");
@@ -94,8 +120,15 @@ public class MySQLAccess {
 				preparedStatement.setString(3, channelTitle);
 				preparedStatement.setString(4, channelDescription);
 
+				// Create batch.
 				preparedStatement.addBatch();
 			} catch (java.sql.SQLException e) {
+				// ** The error below has been solved in database setting. Use
+				// utf8mb4 instead of utf8; also, some additional settings need
+				// fix as well. For more details info, please refer to this
+				// article written by Mathias:
+				// https://mathiasbynens.be/notes/mysql-utf8mb4
+
 				// // The most common error that occurs is caused by the
 				// encoding
 				// // format. There're Emojis and some languages that cannot be
@@ -136,9 +169,10 @@ public class MySQLAccess {
 		}
 
 		try {
-			preparedStatement.executeBatch();
+			preparedStatement.executeBatch(); // execute the batch.
 		} catch (BatchUpdateException e) {
-			// TODO: handle exception
+			// The exceptions won't stop the batch. However, we should count the
+			// failures so that we can easily measure and evaluate.
 			System.out.println(e.getMessage());
 			int[] counts = e.getUpdateCounts();
 			int successCount = 0;
@@ -153,6 +187,7 @@ public class MySQLAccess {
 					failCount++;
 				}
 			}
+			// Print out to see the successes and failures.
 			System.out.println("---Channel---");
 			System.out.println("Number of affected rows: " + successCount);
 			System.out.println("Number of affected rows (not avaliable): " + notAvaliable);
@@ -181,14 +216,15 @@ public class MySQLAccess {
 
 				preparedStatement.addBatch();
 			} catch (SQLException e) {
-				// Do nothing.
+				// Do nothing for now.
 			}
 		}
 
 		try {
 			preparedStatement.executeBatch();
 		} catch (BatchUpdateException e) {
-			// TODO: handle exception
+			// The exceptions won't stop the batch. However, we should count the
+			// failures so that we can easily measure and evaluate.
 			System.out.println(e.getMessage());
 			int[] counts = e.getUpdateCounts();
 			int successCount = 0;
@@ -266,7 +302,8 @@ public class MySQLAccess {
 		try {
 			preparedStatement.executeBatch();
 		} catch (BatchUpdateException e) {
-			// TODO: handle exception
+			// The exceptions won't stop the batch. However, we should count the
+			// failures so that we can easily measure and evaluate.
 			System.out.println(e.getMessage());
 			int[] counts = e.getUpdateCounts();
 			int successCount = 0;
@@ -306,6 +343,7 @@ public class MySQLAccess {
 			Timestamp videoTimeStamp = new java.sql.Timestamp(date.getTime());
 			long videoFavoriteCount = videoStatisticTable.getLong("VideoFavoriteCount");
 			long videoViewCount = videoStatisticTable.getLong("VideoViewCount");
+
 			// Some videos may not allow these information. By default, set them
 			// to 0.
 			long videoLikeCount = 0;
@@ -340,7 +378,8 @@ public class MySQLAccess {
 		try {
 			preparedStatement.executeBatch();
 		} catch (BatchUpdateException e) {
-			// TODO: handle exception
+			// The exceptions won't stop the batch. However, we should count the
+			// failures so that we can easily measure and evaluate.
 			System.out.println(e.getMessage());
 			int[] counts = e.getUpdateCounts();
 			int successCount = 0;
@@ -578,6 +617,10 @@ public class MySQLAccess {
 	}
 
 	// A method that combine and organize the insertions.
+	// So, in the main class, we don't need to call each insertion methods
+	// separately, but only call this method.
+	// Also, using a combined method, we can establish and close connection for
+	// only once.
 	public void writeToDatabase(ArrayList<JSONObject> channelTableList, ArrayList<JSONObject> channelStatisticTableList,
 			ArrayList<JSONObject> videoCategoryTableList, ArrayList<JSONObject> videoTableList,
 			ArrayList<JSONObject> videoStatisticTableList, ArrayList<JSONObject> topLevelCommentTableList,
@@ -604,11 +647,13 @@ public class MySQLAccess {
 		System.out.println("-------------------------------------------------");
 		close();
 
-		Thread.sleep(2000);
+		Thread.sleep(2000); // Rest for 2 seconds, to avoid non-expected
+							// conflict.
 
 	}
 
-	// You need to close the resultSet
+	// We need to close the connection, i.e., close the resultSet, statement,
+	// and connect.
 	protected void close() {
 		try {
 			if (resultSet != null) {
@@ -627,6 +672,9 @@ public class MySQLAccess {
 		}
 	}
 
+	// This is a small tool for generating timeStamp for each method. a
+	// timeStamp is the current exact time, and is used for the statistic
+	// (dynamic metadata) recording.
 	private Timestamp stringToTimestamp(String timeString) throws ParseException {
 		DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date result = df1.parse(timeString.replace("Z", ""));
@@ -635,6 +683,7 @@ public class MySQLAccess {
 	}
 
 	// This method gets a set of video IDs by accessing the database.
+	// The returned IDs are used in metadata collection part.
 	public LinkedHashSet<String> readVideoIdList(int limit) throws Exception {
 
 		establishConnection();
@@ -660,7 +709,6 @@ public class MySQLAccess {
 				updateStatement.executeUpdate();
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
 			throw e;
 		} finally {
 			close();
@@ -668,17 +716,12 @@ public class MySQLAccess {
 		return retrievedVideoId;
 	}
 
-	// This method is used for creating a big video ID base list, which will be
-	// used for further crawling.
+	// This method is for the insertion of discovered video IDs.
 	public void videoIDListCreator(LinkedHashSet<String> videoIdSet) throws SQLException {
 
 		establishConnection();
-		// ** probably can be done with LOAD DATA INFILE, which is much faster
-		// than insertion.
-
-		// ** currently using plain INSERT
 		Iterator<String> videoIdItor = videoIdSet.iterator();
-		//
+
 		String query = "INSERT INTO VideoIdRecord (VideoId, CrawledTime)" + "VALUE (?, ?)"
 				+ "ON DUPLICATE KEY UPDATE VideoId=VideoId";
 
@@ -686,6 +729,7 @@ public class MySQLAccess {
 
 		int count = 0;
 		// Use a timer to count the batch initialization time.
+		// The purpose is to evaluate time usage in different part.
 		long startTime = System.currentTimeMillis();
 		while (videoIdItor.hasNext()) {
 			String videoId = videoIdItor.next();
@@ -700,7 +744,6 @@ public class MySQLAccess {
 				preparedStatement.addBatch();
 
 			} catch (SQLException e) {
-				// TODO: handle exception
 				e.printStackTrace();
 			}
 		}
@@ -715,7 +758,8 @@ public class MySQLAccess {
 			System.out.println("Done.\nBatch run time: " + ((double) batchEndTime - batchStartTime) / 1000 + " sec");
 			System.out.println("Total inserted: " + updateCount.length);
 		} catch (BatchUpdateException e) {
-			// TODO: handle exception
+			// The exceptions won't stop the batch. However, we should count the
+			// failures so that we can easily measure and evaluate.
 			System.out.println(e.getMessage());
 			int[] counts = e.getUpdateCounts();
 			int successCount = 0;
@@ -734,7 +778,6 @@ public class MySQLAccess {
 			System.out.println("Number of affected rows (not avaliable): " + notAvaliable);
 			System.out.println("Failed count in batch: " + failCount);
 		} catch (SQLException e1) {
-			// TODO: handle exception
 			e1.printStackTrace();
 		} finally {
 			preparedStatement.close();

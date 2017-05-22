@@ -1,8 +1,5 @@
 package video_id_generator;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -17,6 +14,13 @@ import com.google.api.services.youtube.model.SearchResult;
 import data_collector_ver4.MySQLAccess;
 import video_category_discoveror.VideoCategoryEnumerate;
 
+/**
+ * This is an important class used in video ID discovery process.  
+ * 
+ * 
+ * @author Tian
+ *
+ */
 public class VideoIdCreator {
 
 	private YouTube youtube;
@@ -34,7 +38,7 @@ public class VideoIdCreator {
 	private long maximumResult;
 
 	// Set the path of where to write the result.
-	private String filepath;
+	// private String filepath;
 
 	/**
 	 * Order can be: date, viewCount, rating, relevance, title (alphabetically)
@@ -46,15 +50,14 @@ public class VideoIdCreator {
 	 * @param page
 	 * @param maximumResult
 	 */
-	public VideoIdCreator(YouTube youtube, String apiKey, String order, int seedSize, int page, long maximumResult,
-			String filepath) {
+	public VideoIdCreator(YouTube youtube, String apiKey, String order, int seedSize, int page, long maximumResult) {
 		this.youtube = youtube;
 		this.apiKey = apiKey;
 		this.order = order;
 		this.iniSeedSize = seedSize;
 		this.page = page;
 		this.maximumResult = maximumResult;
-		this.filepath = filepath;
+		// this.filepath = filepath;
 	}
 
 	/**
@@ -74,10 +77,10 @@ public class VideoIdCreator {
 		tempSeedSet = currentResultSet;
 
 		// Store the initial set of videoIDs.
-		fileWrite(currentResultSet);
+		// fileWrite(currentResultSet);
 		dbWrite(currentResultSet);
 
-		// If expandTime is -1, then go infinite loops. 
+		// If expandTime is -1, then go infinite loops.
 		if (expandTime != -1) {
 			while (expandTime > 0) {
 				System.out.println("Current seed size: " + tempSeedSet.size());
@@ -89,10 +92,10 @@ public class VideoIdCreator {
 				System.out.println("--current result set size: " + currentResultSet.size());
 				System.out.println("-----------------------------------------------");
 				// Store the expanded set of videoIDs.
-				fileWrite(tempSeedSet);
+				// fileWrite(tempSeedSet);
 				dbWrite(tempSeedSet);
 			}
-		}else {
+		} else {
 			while (true) {
 				System.out.println("Current seed size: " + tempSeedSet.size());
 				System.out.println("Maximum seed size is set to: " + expSeedSize);
@@ -102,7 +105,7 @@ public class VideoIdCreator {
 				System.out.println("--current result set size: " + currentResultSet.size());
 				System.out.println("-----------------------------------------------");
 				// Store the expanded set of videoIDs.
-				fileWrite(tempSeedSet);
+				// fileWrite(tempSeedSet);
 				dbWrite(tempSeedSet);
 			}
 		}
@@ -310,23 +313,23 @@ public class VideoIdCreator {
 	}
 
 	// A short method that writes the result into a file.
-	private void fileWrite(LinkedHashSet<String> result) throws IOException {
-
-		try {
-			File file = new File(filepath);
-
-			BufferedWriter bWriter = new BufferedWriter(new FileWriter(file, true));
-
-			Iterator<String> resultItor = result.iterator();
-			while (resultItor.hasNext()) {
-				bWriter.write(resultItor.next() + ",");
-			}
-
-			bWriter.close();
-		} catch (IOException e) {
-			throw e;
-		}
-	}
+	// private void fileWrite(LinkedHashSet<String> result) throws IOException {
+	//
+	// try {
+	// File file = new File(filepath);
+	//
+	// BufferedWriter bWriter = new BufferedWriter(new FileWriter(file, true));
+	//
+	// Iterator<String> resultItor = result.iterator();
+	// while (resultItor.hasNext()) {
+	// bWriter.write(resultItor.next() + ",");
+	// }
+	//
+	// bWriter.close();
+	// } catch (IOException e) {
+	// throw e;
+	// }
+	// }
 
 	private void dbWrite(LinkedHashSet<String> result) throws SQLException {
 
